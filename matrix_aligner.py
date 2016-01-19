@@ -126,7 +126,6 @@ def gotoh(string_x, string_y):
 
     return matrix_s, matrix_v, matrix_h
 
-print(gotoh("asdasd", "asdadsa"))
 
 
 def create_latex_output(string_x, string_y, matrix ,type, path):
@@ -210,4 +209,14 @@ def dataframe_embedding(matrix):
 
     return dataframe
 
-create_latex_output("AABB", "BABAABABB", sellers("AABB", "BABAABABB", 0, 1, 1, 1), 'sellers', 'C:\\Users\\Karsten\\Desktop\\Texkram.txt')
+
+#Use create_latex_output for the creation of a txt file at the given path.
+#Parameter: String x, String y, method you want to call, matrix appearance, path (consider to use the right format for Windows, Linux or Mac)
+#Parameter for the called method: String x, String y, copy score, substitution cost, indel cost, (errors in case of sellers)
+#Variants for matrix appearance:
+#   'matrix' for Needleman-Wunsch, Free End Gap or Smith-Waterman
+#   'sellers' for Sellers
+#Example: create_latex_output("AABB", "BABAABABB", needleman_wunsch("AABB", "BABAABABB", 0, 1, 1), 'matrix', 'C:\\Users\\Karsten\\Desktop\\Texkram.txt')
+create_latex_output("AABB", "BABAABABB", needleman_wunsch("AABB", "BABAABABB", 0, 1, 1), 'matrix', 'C:\\Users\\Karsten\\Desktop\\Texkram.txt')
+
+#Use just the alignment method for a console output.
