@@ -20,10 +20,10 @@ def needleman_wunsch(string_x, string_y,score_copy, cost_sub, cost_indel):
     for i in range(0,len_x):
         for j in range(0,len_y):
             if i == 0 and j > 0:
-                matrix[0][j] = matrix[0][j-1]+cost_indel
+                matrix[0][j] = matrix[0][j-1] + cost_indel
             elif i > 0 and j == 0:
                 matrix[i][0] = matrix[i-1][0] + cost_indel
-            elif i > 0 and j > 0:
+            if i > 0 and j > 0:
                 if string_x[i-1] == string_y[j-1]:
                     matrix[i][j] = max(matrix[i-1][j-1] + score_copy, matrix[i-1][j] + cost_indel, matrix[i][j-1] + cost_indel)
                 elif string_x[i-1] != string_y[j-1]:
@@ -43,13 +43,34 @@ def free_end_gap(string_x, string_y,score_copy, cost_sub, cost_indel):
                 matrix[0][j] = 0
             if i > 0 and j == 0:
                 matrix[i][0] = 0
-            elif i > 0 and j > 0:
+            if i > 0 and j > 0:
                 if string_x[i-1] == string_y[j-1]:
                     matrix[i][j] = max(matrix[i-1][j-1] + score_copy, matrix[i-1][j] + cost_indel, matrix[i][j-1] + cost_indel)
                 elif string_x[i-1] != string_y[j-1]:
                     matrix[i][j] = max(matrix[i-1][j-1] + cost_sub, matrix[i-1][j] + cost_indel, matrix[i][j-1] + cost_indel)
 
     return matrix
+
+
+def semi_global(string_x, string_y,score_copy, cost_sub, cost_indel):
+    len_x = len(string_x)+1
+    len_y = len(string_y)+1
+    matrix = np.zeros(shape=(len_x, len_y), dtype=int)
+
+    for i in range(0, len_x):
+        for j in range(0, len_y):
+            if i == 0 and j > 0:
+                matrix[0][j] = 0
+            if i > 0 and j == 0:
+                matrix[i][0] = matrix[i-1][0] + cost_indel
+            if i > 0 and j > 0:
+                if string_x[i-1] == string_y[j-1]:
+                    matrix[i][j] = max(matrix[i-1][j-1] + score_copy, matrix[i-1][j] + cost_indel, matrix[i][j-1] + cost_indel)
+                elif string_x[i-1] != string_y[j-1]:
+                    matrix[i][j] = max(matrix[i-1][j-1] + cost_sub, matrix[i-1][j] + cost_indel, matrix[i][j-1] + cost_indel)
+
+    return matrix
+
 
 def smith_waterman(string_x, string_y, score_copy, cost_sub, cost_indel):
     len_x = len(string_x)+1
@@ -62,7 +83,7 @@ def smith_waterman(string_x, string_y, score_copy, cost_sub, cost_indel):
                 matrix[0][j] = 0
             if i > 0 and j == 0:
                 matrix[i][0] = 0
-            elif i > 0 and j > 0:
+            if i > 0 and j > 0:
                 if string_x[i-1] == string_y[j-1]:
                     matrix[i][j] = max(0, matrix[i-1][j-1] + score_copy, matrix[i-1][j] + cost_indel, matrix[i][j-1] + cost_indel)
                 elif string_x[i-1] != string_y[j-1]:
@@ -116,19 +137,49 @@ def sellers(string_x, string_y, score_copy, cost_sub, indel, errors):
     return matrix
 
 
-def gotoh(string_x, string_y):
+def gotoh(string_x, string_y, score_copy, cost_sub, cost_gap_open, cost_gap_ext):
     len_x = len(string_x)+1
     len_y = len(string_y)+1
-    matrix_s, matrix_v ,matrix_h = np.zeros(shape=(len_x, len_y), dtype=int), \
-                                   np.zeros(shape=(len_x, len_y), dtype=int), \
-                                   np.zeros(shape=(len_x, len_y), dtype=int)
+    matrix_s, matrix_v ,matrix_h = np.zeros(shape=(len_x, len_y), dtype=float), \
+                                   np.zeros(shape=(len_x, len_y), dtype=float), \
+                                   np.zeros(shape=(len_x, len_y), dtype=float)
+
+    for i in range(0, len_x):
+        for j in range(0, len_y):
+            #!!! + at costs because they are negativ atm !!!
+            if i == 0:
+                matrix_v[0][j] = -np.inf
+                if j == 1:
+                    matrix_h[0][j] = cost_gap_open
+                    matrix_s[0][j] = matrix_h[0][j]
+                if j > 1:
+                    matrix_h[0][j] = matrix_h[0][j-1] + cost_gap_ext
+                    matrix_s[0][j] = matrix_h[0][j]
+            if j == 0:
+                matrix_h[i][0] = -np.inf
+                if i == 1:
+                    matrix_v[i][0] = cost_gap_open
+                    matrix_s[i][0] = matrix_v[i][0]
+                if i > 1:
+                    matrix_v[i][0] = matrix_v[i-1][0] + cost_gap_ext
+                    matrix_s[i][0] = matrix_v[i][0]
+            if i > 0 and j > 0:
+                matrix_v[i][j] = max(matrix_s[i-1][j] + cost_gap_open, matrix_v[i-1][j] + cost_gap_ext)
+                matrix_h[i][j] = max(matrix_s[i][j-1] + cost_gap_open, matrix_h[i][j-1] + cost_gap_ext)
+                if string_x[i-1] == string_y[j-1]:
+                    matrix_s[i][j] = max(matrix_s[i-1][j-1] + score_copy, matrix_v[i][j], matrix_h[i][j])
+                elif string_x[i-1] != string_y[j-1]:
+                    matrix_s[i][j] = max(matrix_s[i-1][j-1] + cost_sub, matrix_v[i][j], matrix_h[i][j])
+
+    return matrix_v, matrix_h, matrix_s
+
+d = gotoh("CGCAT", "CGT", 2, -1,-1,-0.5)
+print(d[0])
+print(d[1])
+print(d[2])
 
 
-    return matrix_s, matrix_v, matrix_h
-
-
-
-def create_latex_output(string_x, string_y, matrix ,type, path):
+def create_latex_output(string_x, string_y, matrix, type, path):
     len_x = len(string_x)
     len_y = len(string_y)
     f = open(path, "w")
@@ -166,7 +217,7 @@ def create_latex_output(string_x, string_y, matrix ,type, path):
                 print(r'\hline',file=f)
         else:
             print(r'\end{tabular}\\',file=f)
-    #untested
+
     elif type == 'sellers':
         tex_columns = r'\begin{tabular}{'
         #String_x Spalte + Epsilon Spalte + String_y
@@ -203,6 +254,113 @@ def create_latex_output(string_x, string_y, matrix ,type, path):
         else:
             print(r'\end{tabular}\\',file=f)
 
+    elif type == 'gotoh':
+        #Depends on the return order of the GOTOH Method
+        matrix_v = matrix[0]
+        matrix_h = matrix[1]
+        matrix_s = matrix[2]
+
+        #Matrix V
+        tex_columns = r'\begin{tabular}{'
+        #String_x Spalte + Epsilon Spalte + String_y
+        for i in range(len_y+2):
+            tex_columns = tex_columns + '|c'
+        else:
+            tex_columns = tex_columns +  r'|}'
+        print(str(tex_columns), file=f)
+        print(r'\hline',file=f)
+        tex_row_string_y = r'V & $\epsilon$'
+        for i in range(len_y):
+            tex_row_string_y = tex_row_string_y + ' & $' + string_y[i] + '$'
+        else:
+            tex_row_string_y = tex_row_string_y +  r'\\'
+        print(tex_row_string_y, file=f)
+        print(r'\hline',file=f)
+
+        for i in range(0,len_x+1):
+            matrix_row = ''
+            for j in range(len_y+1):
+                matrix_row = matrix_row + ' & $'+str(matrix_v[i][j])+'$'
+            else:
+                matrix_row = matrix_row + r'\\'
+            if i == 0:
+                print(r'$\epsilon$' + matrix_row, file=f)
+                print(r'\hline',file=f)
+            else:
+                print('$' + string_x[i-1] + '$' + matrix_row, file=f)
+                print(r'\hline',file=f)
+        else:
+            print(r'\end{tabular}\\',file=f)
+
+        print(r'\\\\',file=f)
+        #Matrix H
+        tex_columns = r'\begin{tabular}{'
+        #String_x Spalte + Epsilon Spalte + String_y
+        for i in range(len_y+2):
+            tex_columns = tex_columns + '|c'
+        else:
+            tex_columns = tex_columns +  r'|}'
+        print(str(tex_columns), file=f)
+        print(r'\hline',file=f)
+        tex_row_string_y = r'H & $\epsilon$'
+        for i in range(len_y):
+            tex_row_string_y = tex_row_string_y + ' & $' + string_y[i] + '$'
+        else:
+            tex_row_string_y = tex_row_string_y +  r'\\'
+        print(tex_row_string_y, file=f)
+        print(r'\hline',file=f)
+
+        for i in range(0,len_x+1):
+            matrix_row = ''
+            for j in range(len_y+1):
+                matrix_row = matrix_row + ' & $'+str(matrix_h[i][j])+'$'
+            else:
+                matrix_row = matrix_row + r'\\'
+            if i == 0:
+                print(r'$\epsilon$' + matrix_row, file=f)
+                print(r'\hline',file=f)
+            else:
+                print('$' + string_x[i-1] + '$' + matrix_row, file=f)
+                print(r'\hline',file=f)
+        else:
+            print(r'\end{tabular}\\',file=f)
+
+        print(r'\\\\',file=f)
+        #Matrix S
+        tex_columns = r'\begin{tabular}{'
+        #String_x Spalte + Epsilon Spalte + String_y
+        for i in range(len_y+2):
+            tex_columns = tex_columns + '|c'
+        else:
+            tex_columns = tex_columns +  r'|}'
+        print(str(tex_columns), file=f)
+        print(r'\hline',file=f)
+        tex_row_string_y = r'S & $\epsilon$'
+        for i in range(len_y):
+            tex_row_string_y = tex_row_string_y + ' & $' + string_y[i] + '$'
+        else:
+            tex_row_string_y = tex_row_string_y +  r'\\'
+        print(tex_row_string_y, file=f)
+        print(r'\hline',file=f)
+
+        for i in range(0,len_x+1):
+            matrix_row = ''
+            for j in range(len_y+1):
+                matrix_row = matrix_row + ' & $'+str(matrix_s[i][j])+'$'
+            else:
+                matrix_row = matrix_row + r'\\'
+            if i == 0:
+                print(r'$\epsilon$' + matrix_row, file=f)
+                print(r'\hline',file=f)
+            else:
+                print('$' + string_x[i-1] + '$' + matrix_row, file=f)
+                print(r'\hline',file=f)
+        else:
+            print(r'\end{tabular}\\',file=f)
+
+
+
+
 
 def dataframe_embedding(matrix):
     dataframe = pd.DataFrame
@@ -217,6 +375,8 @@ def dataframe_embedding(matrix):
 #   'matrix' for Needleman-Wunsch, Free End Gap or Smith-Waterman
 #   'sellers' for Sellers
 #Example: create_latex_output("AABB", "BABAABABB", needleman_wunsch("AABB", "BABAABABB", 0, 1, 1), 'matrix', 'C:\\Users\\Karsten\\Desktop\\Texkram.txt')
-create_latex_output("AABB", "BABAABABB", needleman_wunsch("AABB", "BABAABABB", 0, 1, 1), 'matrix', 'C:\\Users\\Karsten\\Desktop\\Texkram.txt')
+create_latex_output("CGCAT", "CGT", gotoh("CGCAT", "CGT", 2, -1, -1, -0.5), 'gotoh', 'C:\\Users\\Karsten\\Desktop\\Texkram.txt')
 
 #Use just the alignment method for a console output.
+
+#!!!costs have to be negative atm!!!
