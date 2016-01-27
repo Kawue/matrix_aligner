@@ -5,11 +5,38 @@ import numpy as np
 import pandas as pd
 
 
-def main(string_x, string_y, type, score_copy, cost_sub, cost_indel, cost_matrix):
-    if type == 'n':
-        needleman_wunsch(string_x, string_y)
+def main(string_x, string_y, type, score_copy, cost_sub, cost_indel, errors, cost_gap_open, cost_gap_ext, path, latexFlag):
+    if type == 'nw':
+        if latexFlag:
+            create_latex_output(string_x, string_y, needleman_wunsch(string_x, string_y, score_copy, cost_sub, cost_indel), 'matrix', path)
+        elif not latexFlag:
+            needleman_wunsch(string_x, string_y, score_copy, cost_sub, cost_indel)
+    elif type == 'feg':
+        if latexFlag:
+            create_latex_output(string_x, string_y, free_end_gap(string_x, string_y, score_copy, cost_sub, cost_indel), 'matrix', path)
+        elif not latexFlag:
+            free_end_gap(string_x, string_y, score_copy, cost_sub, cost_indel)
+    elif type == 'sg':
+        if latexFlag:
+            create_latex_output(string_x, string_y, semi_global(string_x, string_y, score_copy, cost_sub, cost_indel), 'matrix', path)
+        elif not latexFlag:
+            semi_global(string_x, string_y, score_copy, cost_sub, cost_indel)
+    elif type == 'sw':
+        if latexFlag:
+            create_latex_output(string_x, string_y, smith_waterman(string_x, string_y, score_copy, cost_sub, cost_indel), 'matrix', path)
+        elif not latexFlag:
+            smith_waterman(string_x, string_y, score_copy, cost_sub, cost_indel)
+    elif type == 'sellers':
+        if latexFlag:
+            create_latex_output(string_x, string_y, sellers(string_x, string_y, score_copy, cost_sub, cost_indel, errors), 'sellers', path)
+        elif not latexFlag:
+            sellers(string_x, string_y, score_copy, cost_sub, cost_indel, errors)
+    elif type == 'gotoh':
+        if latexFlag:
+            create_latex_output(string_x, string_y, gotoh(string_x, string_y, score_copy, cost_sub, cost_gap_open, cost_gap_ext), 'gotoh', path)
+        elif not latexFlag:
+            gotoh(string_x, string_y, score_copy, cost_sub, cost_gap_open, cost_gap_ext)
 
-    dataframe_embedding()
 
 
 def needleman_wunsch(string_x, string_y,score_copy, cost_sub, cost_indel):
@@ -367,16 +394,35 @@ def dataframe_embedding(matrix):
 
     return dataframe
 
+#Usage: Call main() with all necessary parameters for the given method.
+#main() has the following parameters:
+#string_x: vertical matrix string.
+#string_y: horizontal matrix string.
+#type: Matrix type/Method you want to use, input as string, following parameters are possible:
+    #'nw': Needleman-Wunsch
+    #'feg': Free-End-Gap
+    #'sg': Semi-Global-Alignment (Approximate text search)
+    #'sw': Smith-Waterman
+    #'sellers': Sellers Algorithm (cutoff variant)
+    #'gotoh': Gotoh-Algorithm for affine gap costs
+#score_copy: Score for copy operations, commonly positive in score systems and zero in cost systems.
+#cost_sub: Costs for substitution operations, commonly negative in score systems and positive in cost systems.
+#cost_indel: Costs for indel operations, commonly negative in score systems and positive in cost systems.
+#errors: Number of allowed errors in Sellers-Algorithm.
+#cost_gap_open: Costs for gap opens in Gotoh.
+#cost_gap_ext: Costs for gap extension in Gotoh.
+#path: The path, where you want to save your Latex output (consider to use the right format for Windows, Linux or Mac).
+#Attention, using the same path two times will override the old file!
+#latexFlag: Boolean, True if you want an output for Latex, False otherwise.
+#None for not needed Parameters: You can fill all parameters not needed for your method e.g. indel and errors in Gotoh with None.
+#!!!REMEMBER: costs have to be negative in score systems atm!!!
 
-#Use create_latex_output for the creation of a txt file at the given path.
-#Parameter: String x, String y, method you want to call, matrix appearance, path (consider to use the right format for Windows, Linux or Mac)
-#Parameter for the called method: String x, String y, copy score, substitution cost, indel cost, (errors in case of sellers)
-#Variants for matrix appearance:
-#   'matrix' for Needleman-Wunsch, Free End Gap or Smith-Waterman
-#   'sellers' for Sellers
-#Example: create_latex_output("AABB", "BABAABABB", needleman_wunsch("AABB", "BABAABABB", 0, 1, 1), 'matrix', 'C:\\Users\\Karsten\\Desktop\\Texkram.txt')
-create_latex_output("CGCAT", "CGT", gotoh("CGCAT", "CGT", 2, -1, -1, -0.5), 'gotoh', 'C:\\Users\\Karsten\\Desktop\\Texkram.txt')
+main("CGCAT", "CGT", 'gotoh', 2, -1, None, None, -1, -0.5, 'C:\\Users\\Karsten\\Desktop\\Texkram.txt', True)
 
-#Use just the alignment method for a console output.
 
-#!!!costs have to be negative atm!!!
+#TODO: Parsing of command line arguments (argparse)
+#TODO: dataframe_embedding method for output
+#TODO: Backtracing and it's Latex output
+#TODO: Application of a substitution matrix
+#TODO: Hirschberg
+#TODO: Suffixtrees
